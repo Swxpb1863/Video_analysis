@@ -4,3 +4,5 @@ moviepy
 fer
 whisper
 transformers
+subprocess
+Image Magick - https://imagemagick.org/script/download.php
