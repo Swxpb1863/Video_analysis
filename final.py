@@ -13,7 +13,7 @@ from transformers import pipeline
 page_bg = """
 <style>
 body {
-    background-image: url("/home.png"); /* Add your image path */
+    background-image: url("./static/home.png"); /* Add your image path */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -155,7 +155,9 @@ def process_faces_and_emotions(input_video):
             # Write the processed frame to the output file
             if out is None:
                 height, width, _ = frame.shape
-                out = cv2.VideoWriter(output_file, fourcc, 30.0, (width, height))
+                fps = cap.get(cv2.CAP_PROP_FPS)
+                out = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
+
             out.write(frame)
 
         cap.release()
@@ -170,14 +172,23 @@ def process_faces_and_emotions(input_video):
 def add_subtitles_faces_and_emotions(input_video, segments):
     try:
         # Load the video
-        video_clip = VideoFileClip(input_video)
+        original_clip = VideoFileClip(video_path)  # from uploaded video (with audio)
+        emotion_clip = VideoFileClip(emotion_video)  # face-annotated video (no audio)
 
-        # Create subtitle and sentiment clips
+        # Use original audio
+        emotion_clip = emotion_clip.set_audio(original_clip.audio)
+
+        fps = emotion_clip.fps or 24  # Ensure fallback to 24 FPS
+        duration = emotion_clip.duration
+        output_file = f"{os.path.splitext(input_video)[0]}_final.mp4"  # Assigned early
+
         subtitle_clips = []
+
         for segment in segments:
-            start_time, end_time = segment["start"], segment["end"]
+            start_time = min(segment["start"], duration - 0.1)
+            end_time = min(segment["end"], duration)
             text = segment["text"]
-            sentiment_label = segment["sentiment_label"]
+            sentiment_label = segment.get("sentiment_label", "Neutral")
             senti_orientation = f"Sentiment: {sentiment_label}"
 
             # Subtitle at the bottom center
@@ -186,12 +197,12 @@ def add_subtitles_faces_and_emotions(input_video, segments):
                 fontsize=35,
                 color="white",
                 bg_color="black",
-                size=(video_clip.w, None),
+                size=(emotion_clip.w, None),
                 method="caption",
                 font="Arial"
             ).set_position(("center", "bottom")).set_start(start_time).set_end(end_time)
 
-            # Sentiment at the top left corner
+            # Sentiment at top-left corner
             sentiment = TextClip(
                 senti_orientation,
                 fontsize=25,
@@ -204,25 +215,25 @@ def add_subtitles_faces_and_emotions(input_video, segments):
             subtitle_clips.append(subtitle)
             subtitle_clips.append(sentiment)
 
-        # Combine the video and clips
-        final_video = CompositeVideoClip([video_clip] + subtitle_clips, size=video_clip.size)
-        final_video = final_video.set_duration(video_clip.duration)  # Match original duration
-        final_video = final_video.set_audio(video_clip.audio)        # Add original audio
+        # Combine video and overlayed clips
+        final_video = CompositeVideoClip([emotion_clip] + subtitle_clips, size=emotion_clip.size)
+        final_video = final_video.set_audio(emotion_clip.audio)  # Keep original audio
+        final_video = final_video.set_duration(duration)
 
-        # Save the final video
-        output_file = f"{os.path.splitext(input_video)[0]}_final.mp4"
+        # Write final video
         final_video.write_videofile(
             output_file,
             codec="libx264",
             audio_codec="aac",
-            audio_bitrate="192k",  # Ensures good audio quality
-            fps=video_clip.fps
+            audio_bitrate="192k",
+            fps=fps,
+            preset="ultrafast"  # Optional for speed
         )
 
         return output_file
     except Exception as e:
         st.error(f"Error generating final video: {e}")
-        return None 
+        return None
 
 
 # Sidebar navigation
