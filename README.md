@@ -40,7 +40,7 @@ Simple user interface to upload videos and download final processed outputs.
 | Video Processing  | `moviepy`, `opencv-python`, `ffmpeg`          |
 | UI                | `streamlit`                                   |
 
-![Home Page](./result.png)
+![Result Page](./result.png)
 ---
 
 ## 🚀 How It Works
