@@ -1,0 +1,6 @@
+streamlit
+mediapipe
+moviepy
+fer
+whisper
+transformers
