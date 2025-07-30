@@ -6,3 +6,4 @@ whisper
 transformers
 opencv-python-headless
 torch
+moviepy
