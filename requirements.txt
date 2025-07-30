@@ -5,4 +5,5 @@ fer
 whisper
 transformers
 subprocess
-python-opencv
+opencv-python
+torch
