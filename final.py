@@ -169,72 +169,60 @@ def process_faces_and_emotions(input_video):
         st.error(f"Error processing faces and emotions: {e}")
         return None
 
+def draw_text_on_frame(frame, text, position, font_scale=1, color=(255,255,255), thickness=2, background_color=(0, 0, 0)):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    (text_w, text_h), _ = cv2.getTextSize(text, font, font_scale, thickness)
+    x, y = position
+
+    # Draw background box
+    cv2.rectangle(frame, (x, y - text_h - 10), (x + text_w + 10, y + 10), background_color, -1)
+
+    # Draw text over the box
+    cv2.putText(frame, text, (x + 5, y), font, font_scale, color, thickness, cv2.LINE_AA)
+
 def add_subtitles_faces_and_emotions(input_video, segments):
     try:
-        # Load the video
-        original_clip = VideoFileClip(video_path)  # from uploaded video (with audio)
-        emotion_clip = VideoFileClip(emotion_video)  # face-annotated video (no audio)
+        cap = cv2.VideoCapture(input_video)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        # Use original audio
-        emotion_clip = emotion_clip.set_audio(original_clip.audio)
+        output_file = f"{os.path.splitext(input_video)[0]}_final_annotated.mp4"
+        out = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
 
-        fps = emotion_clip.fps or 24  # Ensure fallback to 24 FPS
-        duration = emotion_clip.duration
-        output_file = f"{os.path.splitext(input_video)[0]}_final.mp4"  # Assigned early
+        segment_index = 0
+        frame_idx = 0
 
-        subtitle_clips = []
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        for segment in segments:
-            start_time = min(segment["start"], duration - 0.1)
-            end_time = min(segment["end"], duration)
-            text = segment["text"]
-            sentiment_label = segment.get("sentiment_label", "Neutral")
-            senti_orientation = f"Sentiment: {sentiment_label}"
+            current_time = frame_idx / fps
 
-            # Subtitle at the bottom center
-            subtitle = TextClip(
-                text,
-                fontsize=35,
-                color="white",
-                bg_color="black",
-                size=(emotion_clip.w, None),
-                method="caption",
-                font="Arial"
-            ).set_position(("center", "bottom")).set_start(start_time).set_end(end_time)
+            # Check if current_time falls in the current segment
+            while (segment_index < len(segments) and 
+                   current_time > segments[segment_index]['end']):
+                segment_index += 1
 
-            # Sentiment at top-left corner
-            sentiment = TextClip(
-                senti_orientation,
-                fontsize=25,
-                color="yellow",
-                bg_color="black",
-                size=(250, None),
-                font="Arial"
-            ).set_position((10, 10)).set_start(start_time).set_end(end_time)
+            if segment_index < len(segments):
+                seg = segments[segment_index]
+                if seg['start'] <= current_time <= seg['end']:
+                    # Draw subtitle and sentiment
+                    draw_text_on_frame(frame, seg['text'], position=(50, height - 50))
+                    draw_text_on_frame(frame, f"Sentiment: {seg.get('sentiment_label', 'Neutral')}", position=(10, 50), font_scale=0.8, color=(0, 255, 255))
 
-            subtitle_clips.append(subtitle)
-            subtitle_clips.append(sentiment)
+            out.write(frame)
+            frame_idx += 1
 
-        # Combine video and overlayed clips
-        final_video = CompositeVideoClip([emotion_clip] + subtitle_clips, size=emotion_clip.size)
-        final_video = final_video.set_audio(emotion_clip.audio)  # Keep original audio
-        final_video = final_video.set_duration(duration)
-
-        # Write final video
-        final_video.write_videofile(
-            output_file,
-            codec="libx264",
-            audio_codec="aac",
-            audio_bitrate="192k",
-            fps=fps,
-            preset="ultrafast"  # Optional for speed
-        )
+        cap.release()
+        out.release()
 
         return output_file
     except Exception as e:
-        st.error(f"Error generating final video: {e}")
+        st.error(f"Error generating final video without ImageMagick: {e}")
         return None
-
 
 # Sidebar navigation
 st.sidebar.title("Navigation")
