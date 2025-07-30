@@ -21,7 +21,32 @@ body {
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
+EMOTIONS = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
 
+def detect_emotion_opencv_only(image):
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Load face detector
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    
+    # Detect faces
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
+    
+    results = []
+    for (x, y, w, h) in faces:
+        face = gray[y:y + h, x:x + w]
+        face_resized = cv2.resize(face, (48, 48))
+        
+        # 🧠 Replace this logic with your own trained model
+        emotion = np.random.choice(EMOTIONS)  # Dummy prediction
+        
+        results.append({
+            'box': (x, y, w, h),
+            'emotion': emotion
+        })
+
+    return results
 # Load Whisper model
 model = whisper.load_model("medium")
 
@@ -29,7 +54,7 @@ model = whisper.load_model("medium")
 sentiment_analyzer = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment")
 
 # Initialize FER for emotion detection
-emotion_detector = FER(mtcnn=True)
+emotion_detector = detect_emotion_opencv_only(frame)
 
 # Sentiment label mapping
 LABEL_MAPPING = {
