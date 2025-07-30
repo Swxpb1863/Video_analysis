@@ -4,7 +4,6 @@ import streamlit as st
 import whisper
 import cv2
 from mediapipe.python.solutions import face_detection
-from fer import FER
 from transformers import pipeline
 
 # CSS for background image
@@ -55,6 +54,13 @@ sentiment_analyzer = pipeline("sentiment-analysis", model="cardiffnlp/twitter-ro
 
 # Initialize FER for emotion detection
 emotion_detector = detect_emotion_opencv_only(frame)
+
+for result in emotions:
+    x, y, w, h = result['box']
+    emotion = result['emotion']
+    cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+    cv2.putText(frame, emotion, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
 
 # Sentiment label mapping
 LABEL_MAPPING = {
