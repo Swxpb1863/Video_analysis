@@ -2,10 +2,8 @@ streamlit
 whisper
 opencv-python-headless
 mediapipe
-fer
 transformers
 torch
 moviepy==1.0.3
-tensorflow
 numpy
 
