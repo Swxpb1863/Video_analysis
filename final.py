@@ -2,7 +2,6 @@ import os
 import subprocess
 import streamlit as st
 import whisper
-from moviepy.config import change_settings
 import cv2
 from mediapipe.python.solutions import face_detection
 from fer import FER
@@ -22,9 +21,6 @@ body {
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
-
-# Configure ImageMagick path (Update this path if needed)
-change_settings({"IMAGEMAGICK_BINARY": r"C:/Program Files/ImageMagick-7.1.1-Q16-HDRI/magick.exe"})
 
 # Load Whisper model
 model = whisper.load_model("medium")
