@@ -2,7 +2,6 @@ import os
 import subprocess
 import streamlit as st
 import whisper
-from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
 from moviepy.config import change_settings
 import cv2
 from mediapipe.python.solutions import face_detection
